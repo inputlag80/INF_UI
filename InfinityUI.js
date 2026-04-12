@@ -1,6 +1,6 @@
 /**
  * InfinityUI — Procedural Interface Engine
- * Version 1.1.1
+ * Version 1.1.2
  * 
  * Более 10²⁸ вариантов интерфейса в 5 КБ кода.
  * Бесконечная кастомизация через HSL + Alpha + динамические паттерны.
@@ -19,7 +19,7 @@
 (function(global) {
   'use strict';
 
-  // = Конфигурация CSS-переменных (привязка к стилям) =
+  // = Конфигурация CSS-переменных, привязка к стилям =
   const CSS_VARS = {
     primary: '--ui-primary',   // основной акцент
     bg:      '--ui-bg',        // фон панелей
@@ -48,7 +48,7 @@
      * @param {HTMLElement} options.root - корневой элемент для CSS-переменных - по умолчанию :root
      */
     constructor(options = {}) {
-      // состояние — то, что попадёт в хэш / JSON
+      // состояние то, что попадёт в хэш / JSON
       this.config = {
         h:      clamp(toFloat(options.hue, 200), 0, 360),        // Hue 0-360
         s:      clamp(toFloat(options.saturation, 80), 0, 100),  // Saturation 0-100
@@ -70,7 +70,7 @@
       // Привязываем CSS-переменные - можно переопределить
       this.cssVars = { ...CSS_VARS };
 
-      // Привязываем _tick один раз
+      // Привязываем _tick 1 раз
       this._tick = this._tick.bind(this);
 
       // Запуск или остановка анимации в зависимости от режима
@@ -125,7 +125,7 @@
       return { primary, bg, text: textColor, glow, border };
     }
 
-    // = Отрисовка кадра (вызывается requestAnimationFrame) =
+    // = Отрисовка кадра вызывается requestAnimationFrame =
     _tick(timestamp) {
       const now = timestamp / 1000; // секунды
 
@@ -134,10 +134,6 @@
         const timeLeft = this._alertEndTime - now;
         if (timeLeft <= 0) {
           this._alertActive = false;
-          // Если alert завершился и режим static — нужно перепроверить анимацию
-          if (this.config.mode === 'static') {
-            this._handleAnimation();
-          }
         } else {
           const factor = Math.min(1, timeLeft / 1.5);
           finalConfig.h = 0;   // красный
@@ -155,7 +151,14 @@
       root.style.setProperty(this.cssVars.glow, data.glow);
       root.style.setProperty(this.cssVars.border, data.border);
 
-      this._rafId = requestAnimationFrame(this._tick);
+      // Решаем, нужно ли продолжать анимацию
+      const shouldContinue = (this.config.mode === 'pulse') || this._alertActive;
+      if (shouldContinue) {
+        this._rafId = requestAnimationFrame(this._tick);
+      } else {
+        this._rafId = null;
+        this._isAnimating = false;
+      }
     }
 
     // = Управление циклом анимации - вкл/выкл =
@@ -165,12 +168,13 @@
         this._isAnimating = true;
         this._rafId = requestAnimationFrame(this._tick);
       } else if (!shouldAnimate && this._isAnimating) {
+        // Если анимация не нужна, но флаг поднят — останавливаем 
         this._isAnimating = false;
         if (this._rafId) {
           cancelAnimationFrame(this._rafId);
           this._rafId = null;
         }
-        // Однократный расчёт для статического режима
+        // Применяем статические стили
         const data = this._calculateWithConfig(Date.now() / 1000, this.config);
         const root = this._root;
         root.style.setProperty(this.cssVars.primary, data.primary);
@@ -253,7 +257,10 @@
         const decoded = atob(hash);
         const parts = decoded.split('|');
         if (parts.length !== 8) throw new Error('Invalid hash format');
-        const [h, s, l, a, bgA, gS, speed, modeFlag] = parts.map(v => parseFloat(v));
+        const [h, s, l, a, bgA, gS, speed, modeFlag] = parts.map(v => {
+          const num = parseFloat(v);
+          return isNaN(num) ? 0 : num;
+        });
         this.config.h = clamp(h, 0, 360);
         this.config.s = clamp(s, 0, 100);
         this.config.l = clamp(l, 0, 100);
