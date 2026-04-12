@@ -1,4 +1,4 @@
-# ♾️ InfinityUI — Procedural Interface Engine
+# InfinityUI — Procedural Interface Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Size](https://img.shields.io/badge/size-5%20KB-blue)](InfinityUI.js)
@@ -205,12 +205,13 @@ with gr.Blocks(js=custom_js) as demo:
     ...
 ```
 `Применение CSS-переменных`
-python
+```python
 with gr.Blocks(css="""
     .gradio-container { background: var(--ui-bg) !important; }
     .gr-button-primary { background: var(--ui-primary) !important; }
 """) as demo:
     ...
+```
 ```markdown
 Добавление элементов управления
 Слайдер для изменения оттенка:
@@ -237,7 +238,7 @@ alert_btn.click(
 )
 ```
 Полный код проекта gen-image можно посмотреть в его репозитории.
-
+https://github.com/inputlag80/gen-image
 
 `Шеринг пресетов`
 InfinityUI позволяет обмениваться стилями с помощью компактного хэша.
