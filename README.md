@@ -229,7 +229,7 @@ hue_slider.change(
 Кнопка для вызова alert():
 
 ```python
-alert_btn = gr.Button("⚠️ Симуляция ошибки")
+alert_btn = gr.Button("Симуляция ошибки")
 alert_btn.click(
     fn=None,
     inputs=None,
