@@ -1,10 +1,10 @@
 /**
  * InfinityUI — Procedural Interface Engine
- * Version 1.1.0
+ * Version 1.1.1
  * 
  * Более 10²⁸ вариантов интерфейса в 5 КБ кода.
  * Бесконечная кастомизация через HSL + Alpha + динамические паттерны.
- * Умный контраст (WCAG), реакция на события, шеринг пресетов.
+ * Умный контраст WCAG, реакция на события, шеринг пресетов.
  * 
  * Использование:
  *   const ui = new InfinityUI({ hue: 200 });
@@ -19,7 +19,7 @@
 (function(global) {
   'use strict';
 
-  // = Конфигурация CSS-переменных =
+  // = Конфигурация CSS-переменных (привязка к стилям) =
   const CSS_VARS = {
     primary: '--ui-primary',   // основной акцент
     bg:      '--ui-bg',        // фон панелей
@@ -32,7 +32,7 @@
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const toFloat = (v, def) => isNaN(parseFloat(v)) ? def : parseFloat(v);
 
-  // Относительная яркость по WCAG для "умного" контраста
+  // Относительная яркость по WCAG (для умного контраста)
   const getLuminance = (r, g, b) => {
     const [rs, gs, bs] = [r, g, b].map(c => {
       c /= 255;
@@ -45,7 +45,7 @@
   class InfinityUI {
     /**
      * @param {Object} options - начальные настройки
-     * @param {HTMLElement} options.root - корневой элемент для CSS-переменных (по умолчанию :root)
+     * @param {HTMLElement} options.root - корневой элемент для CSS-переменных - по умолчанию :root
      */
     constructor(options = {}) {
       // состояние — то, что попадёт в хэш / JSON
@@ -70,11 +70,14 @@
       // Привязываем CSS-переменные - можно переопределить
       this.cssVars = { ...CSS_VARS };
 
+      // Привязываем _tick один раз
+      this._tick = this._tick.bind(this);
+
       // Запуск или остановка анимации в зависимости от режима
       this._handleAnimation();
     }
 
-    // = Простейший конвертер HSL → RGB  -для расчёта яркости =
+    // = Простейший конвертер HSL → RGB - для расчёта яркости =
     _hslToRgb(h, s, l) {
       h /= 360; s /= 100; l /= 100;
       let r, g, b;
@@ -108,7 +111,7 @@
         currentL = clamp(currentL, 5, 95);
       }
 
-      // "Умный" контраст через относительную яркость (WCAG)
+      // Умный контраст через относительную яркость - WCAG
       const rgb = this._hslToRgb(cfg.h, cfg.s, currentL);
       const lum = getLuminance(rgb[0], rgb[1], rgb[2]);
       const textColor = lum > 0.179 ? '#1a1a1a' : '#ffffff';
@@ -122,7 +125,7 @@
       return { primary, bg, text: textColor, glow, border };
     }
 
-    // = Отрисовка кадра - вызывается requestAnimationFrame =
+    // = Отрисовка кадра (вызывается requestAnimationFrame) =
     _tick(timestamp) {
       const now = timestamp / 1000; // секунды
 
@@ -131,6 +134,10 @@
         const timeLeft = this._alertEndTime - now;
         if (timeLeft <= 0) {
           this._alertActive = false;
+          // Если alert завершился и режим static — нужно перепроверить анимацию
+          if (this.config.mode === 'static') {
+            this._handleAnimation();
+          }
         } else {
           const factor = Math.min(1, timeLeft / 1.5);
           finalConfig.h = 0;   // красный
@@ -156,7 +163,6 @@
       const shouldAnimate = this.config.mode === 'pulse' || this._alertActive;
       if (shouldAnimate && !this._isAnimating) {
         this._isAnimating = true;
-        this._tick = this._tick.bind(this);
         this._rafId = requestAnimationFrame(this._tick);
       } else if (!shouldAnimate && this._isAnimating) {
         this._isAnimating = false;
@@ -215,7 +221,6 @@
       if (modeChanged) {
         this._handleAnimation();
       } else if (!this._isAnimating) {
-        // Если статика — перерисовать один раз
         const data = this._calculateWithConfig(Date.now() / 1000, this.config);
         const root = this._root;
         root.style.setProperty(this.cssVars.primary, data.primary);
@@ -274,13 +279,13 @@
     importJSON(jsonString) {
       try {
         const cfg = JSON.parse(jsonString);
-        this.config.h = clamp(cfg.h ?? 200, 0, 360);
-        this.config.s = clamp(cfg.s ?? 80, 0, 100);
-        this.config.l = clamp(cfg.l ?? 50, 0, 100);
-        this.config.a = clamp(cfg.a ?? 1, 0, 1);
-        this.config.bgA = clamp(cfg.bgA ?? 0.9, 0, 1);
-        this.config.gS = clamp(cfg.gS ?? 20, 0, 50);
-        this.config.speed = clamp(cfg.speed ?? 2, 0, 10);
+        this.config.h = clamp(toFloat(cfg.h, 200), 0, 360);
+        this.config.s = clamp(toFloat(cfg.s, 80), 0, 100);
+        this.config.l = clamp(toFloat(cfg.l, 50), 0, 100);
+        this.config.a = clamp(toFloat(cfg.a, 1), 0, 1);
+        this.config.bgA = clamp(toFloat(cfg.bgA, 0.9), 0, 1);
+        this.config.gS = clamp(toFloat(cfg.gS, 20), 0, 50);
+        this.config.speed = clamp(toFloat(cfg.speed, 2), 0, 10);
         this.config.mode = (cfg.mode === 'static') ? 'static' : 'pulse';
         this._handleAnimation();
         return true;
